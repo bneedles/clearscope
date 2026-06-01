@@ -1,4 +1,10 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+
+// Load Inter font
+const fontLink = document.createElement("link");
+fontLink.rel = "stylesheet";
+fontLink.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap";
+document.head.appendChild(fontLink);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const BG   = "#f0f4f8";
@@ -15,119 +21,119 @@ const btn  = (bg,fg="#fff")=>({padding:"10px 20px",borderRadius:10,background:bg
 // ── Catalog ───────────────────────────────────────────────────────────────────
 const CATALOG = [
   { group:"Structural & Exterior", items:[
-    {id:"foundation",label:"Foundation",icon:"??",desc:"Cracks, settling, water intrusion",fields:[],q:[
+    {id:"foundation",label:"Foundation",icon:"🏗",desc:"Cracks, settling, water intrusion",fields:[],q:[
       {id:"cracks",text:"Any visible cracks in foundation walls or floor?",type:"opt",opts:["None","Hairline only","Wide or diagonal"],risk:[0,10,30]},
       {id:"water",text:"Signs of water intrusion or staining?",type:"opt",opts:["None","Minor staining","Active seepage"],risk:[0,15,30]},
       {id:"settling",text:"Visible settling or uneven floors?",type:"yn",risk:[30,0]},
     ]},
-    {id:"roof",label:"Roof",icon:"??",desc:"Age, shingles, flashing, leaks",fields:[{k:"age",l:"Roof Age (yrs)"},{k:"material",l:"Material (Asphalt/Metal/Tile)"}],q:[
+    {id:"roof",label:"Roof",icon:"🏠",desc:"Age, shingles, flashing, leaks",fields:[{k:"age",l:"Roof Age (yrs)"},{k:"material",l:"Material (Asphalt/Metal/Tile)"}],q:[
       {id:"missing",text:"Missing, curling, or damaged shingles visible?",type:"opt",opts:["None","A few","Many"],risk:[0,15,30]},
       {id:"flashing",text:"Condition of flashing around chimney/vents?",type:"opt",opts:["Good","Lifting/gaps","Missing"],risk:[0,15,25]},
       {id:"sag",text:"Any sagging or uneven roof plane?",type:"yn",risk:[30,0]},
       {id:"leaks",text:"Evidence of interior leaks or water stains?",type:"yn",risk:[25,0]},
     ]},
-    {id:"siding",label:"Siding & Trim",icon:"??",desc:"Condition, rot, gaps",fields:[{k:"material",l:"Material (Vinyl/Wood/HardiePlank)"}],q:[
+    {id:"siding",label:"Siding & Trim",icon:"🎨",desc:"Condition, rot, gaps",fields:[{k:"material",l:"Material (Vinyl/Wood/HardiePlank)"}],q:[
       {id:"rot",text:"Visible rot, damage, or gaps in siding?",type:"opt",opts:["None","Minor","Significant"],risk:[0,10,25]},
       {id:"paint",text:"Paint peeling or significant fading?",type:"yn",risk:[10,0]},
     ]},
-    {id:"gutters",label:"Gutters & Downspouts",icon:"??",desc:"Drainage, clogging",fields:[],q:[
+    {id:"gutters",label:"Gutters & Downspouts",icon:"🌧",desc:"Drainage, clogging",fields:[],q:[
       {id:"clogged",text:"Gutters clogged, sagging, or pulling away?",type:"opt",opts:["No issues","Minor","Significant"],risk:[0,8,18]},
       {id:"divert",text:"Downspouts divert water away from foundation?",type:"yn",risk:[0,15]},
     ]},
-    {id:"driveway",label:"Driveway & Grading",icon:"??",desc:"Cracks, water flow toward house",fields:[],q:[
+    {id:"driveway",label:"Driveway & Grading",icon:"🛤",desc:"Cracks, water flow toward house",fields:[],q:[
       {id:"grade",text:"Does ground slope away from house on all sides?",type:"opt",opts:["Yes","Mostly","No - slopes toward"],risk:[0,8,20]},
     ]},
   ]},
   { group:"Electrical", items:[
-    {id:"panel",label:"Service Panel",icon:"??",desc:"Age, capacity, wiring quality",fields:[{k:"manufacturer",l:"Manufacturer"},{k:"amperage",l:"Amperage"},{k:"year",l:"Year"}],q:[
+    {id:"panel",label:"Service Panel",icon:"⚡",desc:"Age, capacity, wiring quality",fields:[{k:"manufacturer",l:"Manufacturer"},{k:"amperage",l:"Amperage"},{k:"year",l:"Year"}],q:[
       {id:"brand",text:"Panel brand?",type:"opt",opts:["Square D/Siemens/Eaton","GE/Murray","Federal Pacific/Zinsco"],risk:[0,10,40]},
       {id:"capacity",text:"Panel amperage?",type:"opt",opts:["200A+","150A","100A or less"],risk:[0,5,15]},
       {id:"double_tap",text:"Double-tapped breakers visible?",type:"yn",risk:[15,0]},
       {id:"rust",text:"Corrosion or rust inside panel?",type:"yn",risk:[20,0]},
     ]},
-    {id:"wiring",label:"Visible Wiring",icon:"??",desc:"Outdated or unsafe wiring types",fields:[],q:[
+    {id:"wiring",label:"Visible Wiring",icon:"🌀",desc:"Outdated or unsafe wiring types",fields:[],q:[
       {id:"type",text:"Visible wiring type?",type:"opt",opts:["Romex/NM cable","Armored BX","Knob & tube or aluminum"],risk:[0,10,35]},
       {id:"junction",text:"Open junction boxes or exposed splices?",type:"yn",risk:[20,0]},
     ]},
-    {id:"outlets",label:"Outlets & GFCIs",icon:"??",desc:"Kitchens, baths, exterior",fields:[],q:[
+    {id:"outlets",label:"Outlets & GFCIs",icon:"🔲",desc:"Kitchens, baths, exterior",fields:[],q:[
       {id:"gfci",text:"GFCI outlets in kitchen, baths, exterior?",type:"opt",opts:["All present","Some missing","None"],risk:[0,10,20]},
       {id:"ungrounded",text:"Ungrounded (2-prong) outlets visible?",type:"yn",risk:[10,0]},
     ]},
   ]},
   { group:"Plumbing", items:[
-    {id:"water_heater",label:"Water Heater",icon:"??",desc:"Age, condition, safety",fields:[{k:"manufacturer",l:"Manufacturer"},{k:"model",l:"Model #"},{k:"serial",l:"Serial #"},{k:"year",l:"Mfg Year"}],q:[
+    {id:"water_heater",label:"Water Heater",icon:"♨️",desc:"Age, condition, safety",fields:[{k:"manufacturer",l:"Manufacturer"},{k:"model",l:"Model #"},{k:"serial",l:"Serial #"},{k:"year",l:"Mfg Year"}],q:[
       {id:"age",text:"Approximate age of water heater?",type:"opt",opts:["Under 6 yrs","6-10 yrs","10-15 yrs","15+ yrs"],risk:[0,5,20,35]},
       {id:"rust",text:"Rust, corrosion, or mineral buildup visible?",type:"opt",opts:["None","Minor","Significant"],risk:[0,10,25]},
       {id:"tpr",text:"TPR valve and overflow pipe present?",type:"opt",opts:["Yes both","Valve only","Neither"],risk:[0,10,20]},
       {id:"r22",text:"R-22 refrigerant label present (heat pump)?",type:"yn",risk:[25,0]},
     ]},
-    {id:"pipes",label:"Pipes & Supply Lines",icon:"??",desc:"Material, condition, leaks",fields:[{k:"material",l:"Pipe material"}],q:[
+    {id:"pipes",label:"Pipes & Supply Lines",icon:"🔩",desc:"Material, condition, leaks",fields:[{k:"material",l:"Pipe material"}],q:[
       {id:"material",text:"Visible pipe material?",type:"opt",opts:["Copper/PEX","CPVC","Galvanized/polybutylene"],risk:[0,5,25]},
       {id:"leaks",text:"Evidence of active leaks or prior repairs?",type:"opt",opts:["None","Staining only","Active drips"],risk:[0,10,30]},
       {id:"pressure",text:"Water pressure adequate throughout?",type:"opt",opts:["Good","Low","Very low"],risk:[0,10,20]},
     ]},
-    {id:"drain",label:"Drain & Sewer",icon:"??",desc:"Slow drains, backup, sewer condition",fields:[],q:[
+    {id:"drain",label:"Drain & Sewer",icon:"🚰",desc:"Slow drains, backup, sewer condition",fields:[],q:[
       {id:"slow",text:"Any slow drains or backup history?",type:"opt",opts:["None","Occasional","Frequent"],risk:[0,10,25]},
       {id:"scoped",text:"Has sewer line been scoped recently?",type:"opt",opts:["Yes, clear","Yes, issues found","Not scoped"],risk:[0,25,10]},
     ]},
   ]},
   { group:"HVAC", items:[
-    {id:"hvac",label:"Heating & Cooling System",icon:"??",desc:"Age, type, condition, efficiency",fields:[{k:"manufacturer",l:"Manufacturer"},{k:"model",l:"Model #"},{k:"serial",l:"Serial #"},{k:"year",l:"Install Year"}],q:[
+    {id:"hvac",label:"Heating & Cooling System",icon:"🌡",desc:"Age, type, condition, efficiency",fields:[{k:"manufacturer",l:"Manufacturer"},{k:"model",l:"Model #"},{k:"serial",l:"Serial #"},{k:"year",l:"Install Year"}],q:[
       {id:"type",text:"System type?",type:"opt",opts:["Forced air gas","Heat pump","Boiler/radiant","Window units"],risk:[0,0,5,15]},
       {id:"age",text:"Age of system?",type:"opt",opts:["Under 5 yrs","5-10 yrs","10-15 yrs","15+ yrs"],risk:[0,5,15,30]},
       {id:"filter",text:"Filter condition?",type:"opt",opts:["Clean","Dirty","Very clogged"],risk:[0,5,15]},
       {id:"noise",text:"Unusual noises or smells when running?",type:"opt",opts:["None","Minor","Yes"],risk:[0,10,25]},
       {id:"coolant",text:"R-22 (Freon) refrigerant system?",type:"yn",risk:[25,0]},
     ]},
-    {id:"ducts",label:"Ductwork & Ventilation",icon:"??",desc:"Condition, insulation, mold",fields:[],q:[
+    {id:"ducts",label:"Ductwork & Ventilation",icon:"💨",desc:"Condition, insulation, mold",fields:[],q:[
       {id:"condition",text:"Visible duct condition?",type:"opt",opts:["Good","Aging/gaps","Damaged/disconnected"],risk:[0,10,25]},
       {id:"mold",text:"Any musty smell from vents?",type:"yn",risk:[20,0]},
     ]},
   ]},
   { group:"Interior", items:[
-    {id:"walls",label:"Walls & Ceilings",icon:"??",desc:"Cracks, stains, settling",fields:[],q:[
+    {id:"walls",label:"Walls & Ceilings",icon:"🧱",desc:"Cracks, stains, settling",fields:[],q:[
       {id:"stains",text:"Water stains or discoloration on ceilings?",type:"opt",opts:["None","Old/dry","Active"],risk:[0,10,25]},
       {id:"cracks",text:"Cracks in walls or ceilings?",type:"opt",opts:["None","Hairline","Wide or structural"],risk:[0,8,25]},
     ]},
-    {id:"windows",label:"Windows & Doors",icon:"??",desc:"Seals, operation, efficiency",fields:[],q:[
+    {id:"windows",label:"Windows & Doors",icon:"🪟",desc:"Seals, operation, efficiency",fields:[],q:[
       {id:"seals",text:"Foggy or failed window seals?",type:"opt",opts:["None","A few","Many"],risk:[0,5,15]},
       {id:"operation",text:"All windows and doors operate freely?",type:"yn",risk:[0,10]},
     ]},
-    {id:"flooring",label:"Flooring",icon:"??",desc:"Condition, soft spots, damage",fields:[],q:[
+    {id:"flooring",label:"Flooring",icon:"🪵",desc:"Condition, soft spots, damage",fields:[],q:[
       {id:"soft",text:"Soft spots or sagging in floors?",type:"yn",risk:[25,0]},
       {id:"condition",text:"Overall flooring condition?",type:"opt",opts:["Good","Worn","Significant damage"],risk:[0,5,20]},
     ]},
-    {id:"attic",label:"Attic",icon:"??",desc:"Insulation, ventilation, moisture",fields:[],q:[
+    {id:"attic",label:"Attic",icon:"🏚",desc:"Insulation, ventilation, moisture",fields:[],q:[
       {id:"insulation",text:"Insulation level?",type:"opt",opts:["Adequate (10+ in)","Thin (<6 in)","None visible"],risk:[0,10,20]},
       {id:"mold",text:"Signs of mold or moisture in attic?",type:"opt",opts:["None","Minor staining","Active mold"],risk:[0,15,35]},
       {id:"ventilation",text:"Adequate ridge/soffit ventilation?",type:"opt",opts:["Yes","Partial","None"],risk:[0,10,20]},
     ]},
-    {id:"basement",label:"Basement / Crawlspace",icon:"??",desc:"Water, mold, structural",fields:[],q:[
+    {id:"basement",label:"Basement / Crawlspace",icon:"🏛",desc:"Water, mold, structural",fields:[],q:[
       {id:"water",text:"Signs of water entry or flooding?",type:"opt",opts:["None","Staining only","Active seepage"],risk:[0,15,35]},
       {id:"mold",text:"Visible mold or musty odor?",type:"opt",opts:["None","Odor only","Visible mold"],risk:[0,15,35]},
       {id:"sump",text:"Sump pump present and working?",type:"opt",opts:["Yes","Present/untested","None"],risk:[0,5,10]},
     ]},
   ]},
   { group:"Safety & Environmental", items:[
-    {id:"mold",label:"Mold & Air Quality",icon:"??",desc:"Visible mold, odors, moisture",fields:[],q:[
+    {id:"mold",label:"Mold & Air Quality",icon:"🍄",desc:"Visible mold, odors, moisture",fields:[],q:[
       {id:"visible",text:"Visible mold anywhere in home?",type:"opt",opts:["None","Isolated (bathroom)","Multiple areas"],risk:[0,15,40]},
       {id:"odor",text:"Persistent musty odor?",type:"yn",risk:[20,0]},
       {id:"tested",text:"Air quality or mold test done?",type:"opt",opts:["Yes, clear","Yes, found issues","Not tested"],risk:[0,30,5]},
     ]},
-    {id:"radon",label:"Radon",icon:"??",desc:"Test results, mitigation",fields:[],q:[
+    {id:"radon",label:"Radon",icon:"☢️",desc:"Test results, mitigation",fields:[],q:[
       {id:"tested",text:"Has home been tested for radon?",type:"opt",opts:["Yes, below 4 pCi/L","Yes, above 4 pCi/L","Not tested"],risk:[0,25,10]},
       {id:"system",text:"Radon mitigation system present?",type:"opt",opts:["Yes","No","N/A - not needed"],risk:[0,5,0]},
     ]},
-    {id:"asbestos",label:"Asbestos / Lead",icon:"??",desc:"Older materials, paint, insulation",fields:[],q:[
+    {id:"asbestos",label:"Asbestos / Lead",icon:"⚠️",desc:"Older materials, paint, insulation",fields:[],q:[
       {id:"age_risk",text:"Home built before 1980?",type:"yn",risk:[15,0]},
       {id:"tested",text:"Lead paint or asbestos inspection done?",type:"opt",opts:["Yes, clear","Yes, found","Not done"],risk:[0,25,10]},
     ]},
-    {id:"termites",label:"Pests & Termites",icon:"??",desc:"Damage, evidence, history",fields:[],q:[
+    {id:"termites",label:"Pests & Termites",icon:"🐜",desc:"Damage, evidence, history",fields:[],q:[
       {id:"damage",text:"Visible wood damage from pests?",type:"opt",opts:["None","Minor","Significant"],risk:[0,10,30]},
       {id:"mud_tubes",text:"Mud tubes or active pest signs?",type:"yn",risk:[25,0]},
       {id:"inspection",text:"Recent pest inspection?",type:"opt",opts:["Yes, clear","Yes, treatment done","No inspection"],risk:[0,5,15]},
     ]},
-    {id:"smoke_co",label:"Smoke & CO Detectors",icon:"??",desc:"Placement, function, age",fields:[],q:[
+    {id:"smoke_co",label:"Smoke & CO Detectors",icon:"🚨",desc:"Placement, function, age",fields:[],q:[
       {id:"present",text:"Smoke detectors on every level?",type:"opt",opts:["Yes all levels","Some levels","None visible"],risk:[0,5,20]},
       {id:"co",text:"CO detectors near sleeping areas?",type:"opt",opts:["Yes","No","No gas appliances"],risk:[0,15,0]},
     ]},
@@ -367,10 +373,10 @@ function PhotoCapture({ itemId, photos, onPhotos }) {
       {/* Button group */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
         <button onClick={() => labelRef.current.click()} style={{ ...btn("#0f172a"), fontSize: 13, padding: "8px 14px" }}>
-          ?? Scan Label
+          📷 Scan Label
         </button>
         <button onClick={() => fileRef.current.click()} style={{ ...btn(PRI), fontSize: 13, padding: "8px 14px" }}>
-          ?? Upload Photos
+          📁 Upload Photos
         </button>
         <span style={{ fontSize: 12, color: "#94a3b8", alignSelf: "center" }}>or drag & drop below</span>
       </div>
@@ -387,7 +393,7 @@ function PhotoCapture({ itemId, photos, onPhotos }) {
       {/* Scan result card */}
       {scanResult && (
         <div style={{ marginTop: 10, background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 10, padding: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: GRN, marginBottom: 6 }}>?? Label Scanned</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: GRN, marginBottom: 6 }}>✅ Label Scanned</div>
           {[["Manufacturer", scanResult.manufacturer], ["Model", scanResult.model], ["Serial", scanResult.serial],
             ["Mfg Year", scanResult.decodedManufactureYear ? `${scanResult.decodedManufactureYear} (${scanResult.serialDecodeExplanation || ""})` : scanResult.year],
             ["Fuel", scanResult.fuelType], ["Capacity", scanResult.capacity], ["BTU", scanResult.btu],
@@ -639,12 +645,12 @@ Return ONLY valid JSON (no markdown):
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: BG, fontFamily: "Inter, system-ui, sans-serif", fontStyle: "normal" }}>
       {/* Header */}
       <div style={{ background: "#0f172a", padding: "0 24px" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 22 }}>??</span>
+            <span style={{ fontSize: 22 }}>🔍</span>
             <span style={{ fontWeight: 900, fontSize: 20, color: "#fff", letterSpacing: "-0.02em" }}>ClearScope</span>
             <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 4 }}>Home Intelligence</span>
           </div>
@@ -665,10 +671,7 @@ Return ONLY valid JSON (no markdown):
               <div style={{ fontWeight: 800, fontSize: 20, color: "#0f172a", marginBottom: 4 }}>Property Details</div>
               <div style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>Enter the basics about this property</div>
 
-              <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>ADDRESS</label>
-                <input style={inp} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, City, State" />
-              </div>
+              <AddressAutocomplete value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
                 <div>
@@ -732,7 +735,7 @@ Return ONLY valid JSON (no markdown):
 
             {items.length === 0 && (
               <div style={{ background: CARD, borderRadius: 16, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>??</div>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                 <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a", marginBottom: 8 }}>No items yet</div>
                 <div style={{ color: "#64748b", fontSize: 14, marginBottom: 20 }}>Add items to inspect -- roof, HVAC, electrical, plumbing, and more</div>
                 <button onClick={() => setShowAdd(true)} style={btn(PRI)}>+ Add Inspection Items</button>
@@ -744,9 +747,9 @@ Return ONLY valid JSON (no markdown):
             ))}
 
             {items.length > 0 && (
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
-                <button onClick={generateReport} style={btn("#16a34a")} disabled={generating}>
-                  {generating ? "Generating..." : "Generate Report ??"}
+              <div style={{ marginTop: 8 }}>
+                <button onClick={generateReport} style={{ ...btn("#16a34a"), width: "100%" }} disabled={generating}>
+                  {generating ? "Generating..." : "Generate Report"}
                 </button>
               </div>
             )}
@@ -760,7 +763,7 @@ Return ONLY valid JSON (no markdown):
           <div>
             {!report && !generating && (
               <div style={{ background: CARD, borderRadius: 16, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>??</div>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
                 <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a", marginBottom: 8 }}>No report yet</div>
                 <div style={{ color: "#64748b", fontSize: 14, marginBottom: 20 }}>Add inspection items and generate a report</div>
                 <button onClick={() => setTab("items")} style={btn(PRI)}>Go to Items</button>
@@ -769,7 +772,7 @@ Return ONLY valid JSON (no markdown):
 
             {generating && (
               <div style={{ background: CARD, borderRadius: 16, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>??</div>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
                 <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>Generating your report...</div>
                 <div style={{ color: "#64748b", fontSize: 14, marginTop: 8 }}>AI is analyzing all your inspection data</div>
               </div>
@@ -815,7 +818,7 @@ Return ONLY valid JSON (no markdown):
                 {/* Negotiation tips */}
                 {report.negotiationTips?.length > 0 && (
                   <div style={{ background: CARD, borderRadius: 16, padding: 24, marginBottom: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a", marginBottom: 12 }}>?? Negotiation Tips</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a", marginBottom: 12 }}>💡 Negotiation Tips</div>
                     {report.negotiationTips.map((tip, i) => (
                       <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 14, color: "#374151" }}>
                         <span style={{ color: PRI, fontWeight: 700 }}>{i + 1}.</span> {tip}
@@ -827,10 +830,10 @@ Return ONLY valid JSON (no markdown):
                 {/* Pre-closing checklist */}
                 {report.preClosingChecklist?.length > 0 && (
                   <div style={{ background: CARD, borderRadius: 16, padding: 24, marginBottom: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a", marginBottom: 12 }}>?? Pre-Closing Checklist</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a", marginBottom: 12 }}>✅ Pre-Closing Checklist</div>
                     {report.preClosingChecklist.map((item, i) => (
                       <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 14, color: "#374151" }}>
-                        <span>??</span> {item}
+                        <span>✅</span> {item}
                       </div>
                     ))}
                   </div>
